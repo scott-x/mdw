@@ -2,6 +2,7 @@ package mdw
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -25,7 +26,7 @@ func SetJWTExpire(i int64) {
 	expire = i
 }
 
-func GetJWTExpire() int64 {
+func getJWTExpire() int64 {
 	if expire == 0 {
 		expire = 60 * 60 * 24 //default: 1 day
 	}
@@ -131,13 +132,15 @@ func CreateJWT(uid int) (string, error) {
 	claims := token.Claims.(jwt.MapClaims)
 
 	//jwt token expire time
-	claims["exp"] = time.Now().Add(time.Second * time.Duration(GetJWTExpire())).Unix()
+	claims["exp"] = time.Now().Add(time.Second * time.Duration(getJWTExpire())).Unix()
 	//set uid
 	claims["uid"] = uid
-
+	log.Println("secret:", getSecret())
+	log.Println("exp:", getJWTExpire())
+	log.Println("header name:", getHeaderName())
 	tokenStr, err := token.SignedString(getSecret())
 	if err != nil {
-		//fmt.Println(err.Error())
+		fmt.Println(err.Error())
 		return "", err
 	}
 
