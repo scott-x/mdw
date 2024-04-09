@@ -3,6 +3,7 @@ package mdw
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -13,10 +14,22 @@ import (
 
 var (
 	headerName, secret string
+	expire             int64 //expire time: s
 )
 
 func SetSecret(str string) {
 	secret = str
+}
+
+func SetJWTExpire(i int64) {
+	expire = i
+}
+
+func GetJWTExpire() int64 {
+	if expire == 0 {
+		expire = 60 * 60 * 24 //default: 1 day
+	}
+	return expire
 }
 
 func getSecret() string {
@@ -40,19 +53,15 @@ func SetHeaderName(str string) {
 func AllowCrossOrigin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		method := c.Request.Method
-		// 必须，接受指定域的请求，可以使用*不加以限制，但不安全
+
 		//c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Origin", c.GetHeader("Origin"))
-		fmt.Println(c.GetHeader("Origin"))
-		// 必须，设置服务器支持的所有跨域请求的方法
+		//fmt.Println(c.GetHeader("Origin"))
 		c.Header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
-		// 服务器支持的所有头信息字段，不限于浏览器在"预检"中请求的字段
-		c.Header("Access-Control-Allow-Headers", fmt.Sprintf("Content-Type, Content-Length, X-Requested-With, %s", utils.FixHeaderKey(getHeaderName()))) //X-Requested-With 图片上传
-		// 可选，设置XMLHttpRequest的响应对象能拿到的额外字段
+		c.Header("Access-Control-Allow-Headers", fmt.Sprintf("Content-Type, Content-Length, X-Requested-With, %s", utils.FixHeaderKey(getHeaderName()))) //X-Requested-With: image upload
 		c.Header("Access-Control-Expose-Headers", "Access-Control-Allow-Headers, Token")
-		// 可选，是否允许后续请求携带认证信息Cookie，该值只能是true，不需要则不设置
 		c.Header("Access-Control-Allow-Credentials", "true")
-		// 放行所有OPTIONS方法
+
 		if method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
@@ -71,6 +80,8 @@ func AuthRequired() gin.HandlerFunc {
 		//
 		//}
 		//fmt.Println("global.Token.Name:", global.Token.Name)
+
+		//get jwt token from header
 		tokenCookie := r.Header.Get(utils.FixHeaderKey(getHeaderName()))
 
 		if len(tokenCookie) == 0 {
@@ -94,7 +105,41 @@ func AuthRequired() gin.HandlerFunc {
 		}
 
 		if token.Valid {
+			//do sth
+			//https: //stackoverflow.com/questions/45405626/how-to-decode-a-jwt-token-in-go
+			claims, _ := token.Claims.(jwt.MapClaims)
+			// claims are actually a map[string]interface{}
+			//fmt.Println(claims)
+			//set uid to gin.Context
+			if uid, ok := claims["uid"]; ok {
+				c.Set("uid", uid)
+			}
 			c.Next()
 		}
 	}
+}
+
+// any to int: https://stackoverflow.com/questions/18041334/convert-interface-to-int
+func GetUid(c *gin.Context) int {
+	uid, _ := c.Get("uid")
+	return int(uid.(float64))
+}
+
+// create jwt token with user id
+func CreateJWT(uid int) (string, error) {
+	token := jwt.New(jwt.SigningMethodHS256)
+	claims := token.Claims.(jwt.MapClaims)
+
+	//jwt token expire time
+	claims["exp"] = time.Now().Add(time.Second * time.Duration(GetJWTExpire())).Unix()
+	//set uid
+	claims["uid"] = uid
+
+	tokenStr, err := token.SignedString(getSecret())
+	if err != nil {
+		//fmt.Println(err.Error())
+		return "", err
+	}
+
+	return tokenStr, nil
 }
