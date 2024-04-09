@@ -15,13 +15,22 @@ import (
 var (
 	headerName string //http request header that jwt token is set to, default is "token"
 	secret     []byte //will create a new one if not set
-	expire     int64  //expire time - unit => second, default value 1 day
+	expire     int64  //expire time: unit is second, default value is 1 day
 )
 
+// secret
 func SetSecret(str string) {
 	secret = []byte(str)
 }
 
+func getSecret() []byte {
+	if len(string(secret)) == 0 {
+		return []byte(utils.InitServerSecret())
+	}
+	return secret
+}
+
+// jwt expire time
 func SetJWTExpire(i int64) {
 	expire = i
 }
@@ -33,13 +42,7 @@ func getJWTExpire() int64 {
 	return expire
 }
 
-func getSecret() []byte {
-	if len(string(secret)) == 0 {
-		return []byte(utils.InitServerSecret())
-	}
-	return secret
-}
-
+// header name that jwt token is set to
 func getHeaderName() string {
 	if len(headerName) == 0 {
 		return "token"
@@ -121,6 +124,8 @@ func AuthRequired() gin.HandlerFunc {
 }
 
 // any to int: https://stackoverflow.com/questions/18041334/convert-interface-to-int
+
+// get user id
 func GetUid(c *gin.Context) int {
 	uid, _ := c.Get("uid")
 	return int(uid.(float64))
