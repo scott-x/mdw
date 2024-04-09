@@ -2,7 +2,6 @@ package mdw
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -14,12 +13,13 @@ import (
 )
 
 var (
-	headerName, secret string
-	expire             int64 //expire time: s
+	headerName string //http request header that jwt token is set to, default is "token"
+	secret     []byte //will create a new one if not set
+	expire     int64  //expire time - unit => second, default value 1 day
 )
 
 func SetSecret(str string) {
-	secret = str
+	secret = []byte(str)
 }
 
 func SetJWTExpire(i int64) {
@@ -33,9 +33,9 @@ func getJWTExpire() int64 {
 	return expire
 }
 
-func getSecret() string {
-	if len(secret) == 0 {
-		return utils.InitServerSecret()
+func getSecret() []byte {
+	if len(string(secret)) == 0 {
+		return []byte(utils.InitServerSecret())
 	}
 	return secret
 }
@@ -135,12 +135,9 @@ func CreateJWT(uid int) (string, error) {
 	claims["exp"] = time.Now().Add(time.Second * time.Duration(getJWTExpire())).Unix()
 	//set uid
 	claims["uid"] = uid
-	log.Println("secret:", getSecret())
-	log.Println("exp:", getJWTExpire())
-	log.Println("header name:", getHeaderName())
+
 	tokenStr, err := token.SignedString(getSecret())
 	if err != nil {
-		fmt.Println(err.Error())
 		return "", err
 	}
 
