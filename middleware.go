@@ -63,7 +63,7 @@ func AllowCrossOrigin() gin.HandlerFunc {
 		//fmt.Println(c.GetHeader("Origin"))
 		c.Header("Access-Control-Allow-Methods", "POST, GET, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", fmt.Sprintf("Content-Type, Content-Length, X-Requested-With, %s", utils.FixHeaderKey(getHeaderName()))) //X-Requested-With: image upload
-		c.Header("Access-Control-Expose-Headers", "Access-Control-Allow-Headers, Token")
+		c.Header("Access-Control-Expose-Headers", "Access-Control-Allow-Headers, Access-Control-Allow-Origin, Content-Length, Content-Type")
 		c.Header("Access-Control-Allow-Credentials", "true")
 
 		if method == "OPTIONS" {

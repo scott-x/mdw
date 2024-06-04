@@ -9,7 +9,7 @@ import (
 
 func main() {
 	mdw.SetSecret("balabala..")
-	mdw.SetHeaderName("xxx")
+	//mdw.SetHeaderName("xxx")
 	mdw.SetJWTExpire(20) //20 seconds
 	route := gin.Default()
 	route.Use(mdw.AllowCrossOrigin())
@@ -54,7 +54,7 @@ func main() {
 			log.Println(token)
 			if err != nil {
 				log.Println(err)
-				resp.ErrorServerInternal(c)
+				resp.Error(c, 2002, "token生成失败")
 				return
 			}
 			output := Output{Token: token}
@@ -79,18 +79,6 @@ func main() {
 	})
 
 	route.GET("/test4", func(c *gin.Context) {
-		resp.ErrorForbidden(c)
-	})
-
-	route.GET("/test5", func(c *gin.Context) {
-		resp.ErrorNotFound(c)
-	})
-
-	route.GET("/test6", func(c *gin.Context) {
-		resp.ErrorServerInternal(c)
-	})
-
-	route.GET("/test7", func(c *gin.Context) {
 		resp.Error(c, 2004, "username, password does not match")
 	})
 
